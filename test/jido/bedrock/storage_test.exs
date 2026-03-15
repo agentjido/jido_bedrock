@@ -4,6 +4,7 @@ defmodule Jido.Bedrock.StorageTest do
   alias Jido.Bedrock.Storage
 
   defmodule FakeBedrockRepo do
+    @moduledoc false
     use Agent
 
     def start_link(_opts) do
@@ -17,11 +18,9 @@ defmodule Jido.Bedrock.StorageTest do
     def transact(fun), do: transact(fun, [])
 
     def transact(fun, _opts) do
-      try do
-        fun.()
-      catch
-        {:rollback, reason} -> {:error, reason}
-      end
+      fun.()
+    catch
+      {:rollback, reason} -> {:error, reason}
     end
 
     def rollback(reason), do: throw({:rollback, reason})
@@ -90,5 +89,44 @@ defmodule Jido.Bedrock.StorageTest do
 
     assert {:error, :conflict} =
              Storage.append_thread(thread_id, [%{kind: :note, payload: %{n: 2}}], Keyword.put(opts, :expected_rev, 0))
+  end
+
+  test "load_thread reconstructs entries written under a shared prefix" do
+    opts = opts()
+    thread_id = "thread-#{System.unique_integer([:positive])}"
+
+    assert {:ok, appended} =
+             Storage.append_thread(
+               thread_id,
+               [
+                 %{kind: :note, payload: %{n: 1}},
+                 %{kind: :note, payload: %{n: 2}}
+               ],
+               opts
+             )
+
+    assert appended.rev == 2
+
+    assert {:ok, loaded} = Storage.load_thread(thread_id, opts)
+    assert loaded.rev == 2
+    assert Enum.map(loaded.entries, & &1.payload.n) == [1, 2]
+  end
+
+  test "delete_thread clears meta and entry keys" do
+    opts = opts()
+    thread_id = "thread-#{System.unique_integer([:positive])}"
+
+    assert {:ok, _thread} =
+             Storage.append_thread(
+               thread_id,
+               [
+                 %{kind: :note, payload: %{n: 1}},
+                 %{kind: :note, payload: %{n: 2}}
+               ],
+               opts
+             )
+
+    assert :ok = Storage.delete_thread(thread_id, opts)
+    assert :not_found = Storage.load_thread(thread_id, opts)
   end
 end

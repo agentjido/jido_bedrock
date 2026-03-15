@@ -25,10 +25,8 @@ defmodule Jido.Bedrock.Storage do
     with {:ok, repo} <- fetch_repo(opts),
          {:ok, result} <-
            transact(repo, fn ->
-             case repo.get(checkpoint_key(prefix(opts), key)) do
-               nil -> :not_found
-               binary -> {:ok, decode_term(binary)}
-             end
+             repo.get(checkpoint_key(prefix(opts), key))
+             |> decode_checkpoint_result()
            end) do
       result
     end
@@ -201,7 +199,7 @@ defmodule Jido.Bedrock.Storage do
 
   defp thread_entries_range(prefix, thread_id) do
     start_key = thread_entries_prefix(prefix, thread_id)
-    end_key = Bedrock.Key.key_after(start_key)
+    end_key = Bedrock.Key.strinc(start_key)
     {start_key, end_key}
   end
 
@@ -216,6 +214,9 @@ defmodule Jido.Bedrock.Storage do
 
   defp encode_term(term), do: :erlang.term_to_binary(term)
   defp decode_term(binary), do: :erlang.binary_to_term(binary, [:safe])
+
+  defp decode_checkpoint_result(nil), do: :not_found
+  defp decode_checkpoint_result(binary), do: {:ok, decode_term(binary)}
 
   defp fetch_repo(opts) do
     case Keyword.get(opts, :repo) do
