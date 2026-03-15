@@ -2,61 +2,6 @@ defmodule Jido.Bedrock.Case do
   @moduledoc false
   use ExUnit.CaseTemplate
 
-  alias Jido.Bedrock.Storage
-
-  defmodule FakeBedrockRepo do
-    @moduledoc false
-    use Agent
-
-    def start_link(_opts) do
-      Agent.start_link(fn -> %{} end, name: __MODULE__)
-    end
-
-    def reset do
-      Agent.update(__MODULE__, fn _ -> %{} end)
-    end
-
-    def transact(fun), do: transact(fun, [])
-
-    def transact(fun, _opts) do
-      fun.()
-    catch
-      {:rollback, reason} -> {:error, reason}
-    end
-
-    def rollback(reason), do: throw({:rollback, reason})
-
-    def get(key), do: Agent.get(__MODULE__, &Map.get(&1, key))
-
-    def put(key, value) do
-      Agent.update(__MODULE__, &Map.put(&1, key, value))
-      :ok
-    end
-
-    def clear(key) do
-      Agent.update(__MODULE__, &Map.delete(&1, key))
-      :ok
-    end
-
-    def get_range({start_key, end_key}) do
-      Agent.get(__MODULE__, fn state ->
-        state
-        |> Enum.filter(fn {key, _value} -> key >= start_key and key < end_key end)
-        |> Enum.sort_by(&elem(&1, 0))
-      end)
-    end
-
-    def clear_range({start_key, end_key}) do
-      Agent.update(__MODULE__, fn state ->
-        state
-        |> Enum.reject(fn {key, _value} -> key >= start_key and key < end_key end)
-        |> Map.new()
-      end)
-
-      :ok
-    end
-  end
-
   defmodule CheckpointFailureAgent do
     @moduledoc false
     use Agent
@@ -112,29 +57,27 @@ defmodule Jido.Bedrock.Case do
 
   using do
     quote do
+      @moduletag :tmp_dir
+
       alias Jido.Bedrock.Case.CheckpointFailureAgent
-      alias Jido.Bedrock.Case.FakeBedrockRepo
       alias Jido.Bedrock.Case.FlakyStorage
+      alias Jido.Bedrock.RealBedrockCase.TestCluster
+      alias Jido.Bedrock.RealBedrockCase.TestRepo
       alias Jido.Bedrock.Storage
 
       import Jido.Bedrock.Case
+      import Jido.Bedrock.RealBedrockCase
     end
   end
 
   setup_all do
     start_supervised!(CheckpointFailureAgent)
-    start_supervised!(FakeBedrockRepo)
-    {:ok, repo: FakeBedrockRepo}
+    :ok
   end
 
-  setup do
+  setup context do
     CheckpointFailureAgent.reset()
-    FakeBedrockRepo.reset()
-
-    prefix = unique_prefix()
-    storage_opts = [repo: FakeBedrockRepo, prefix: prefix]
-
-    {:ok, prefix: prefix, storage: {Storage, storage_opts}, storage_opts: storage_opts}
+    Jido.Bedrock.RealBedrockCase.setup_real_bedrock(context)
   end
 
   def unique_id(prefix) do

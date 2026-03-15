@@ -1,99 +1,39 @@
 defmodule Jido.Bedrock.StorageTest do
-  use ExUnit.Case, async: false
+  use Jido.Bedrock.Case, async: false
 
-  alias Jido.Bedrock.Storage
-
-  defmodule FakeBedrockRepo do
-    @moduledoc false
-    use Agent
-
-    def start_link(_opts) do
-      Agent.start_link(fn -> %{} end, name: __MODULE__)
-    end
-
-    def reset do
-      Agent.update(__MODULE__, fn _ -> %{} end)
-    end
-
-    def transact(fun), do: transact(fun, [])
-
-    def transact(fun, _opts) do
-      fun.()
-    catch
-      {:rollback, reason} -> {:error, reason}
-    end
-
-    def rollback(reason), do: throw({:rollback, reason})
-
-    def get(key), do: Agent.get(__MODULE__, &Map.get(&1, key))
-
-    def put(key, value) do
-      Agent.update(__MODULE__, &Map.put(&1, key, value))
-      :ok
-    end
-
-    def clear(key) do
-      Agent.update(__MODULE__, &Map.delete(&1, key))
-      :ok
-    end
-
-    def get_range({start_key, end_key}) do
-      Agent.get(__MODULE__, fn state ->
-        state
-        |> Enum.filter(fn {key, _value} -> key >= start_key and key < end_key end)
-        |> Enum.sort_by(&elem(&1, 0))
-      end)
-    end
-
-    def clear_range({start_key, end_key}) do
-      Agent.update(__MODULE__, fn state ->
-        state
-        |> Enum.reject(fn {key, _value} -> key >= start_key and key < end_key end)
-        |> Map.new()
-      end)
-
-      :ok
-    end
-  end
-
-  setup do
-    start_supervised!(FakeBedrockRepo)
-    FakeBedrockRepo.reset()
-    :ok
-  end
-
-  defp opts do
-    [repo: FakeBedrockRepo, prefix: "test/#{System.unique_integer([:positive])}/"]
-  end
-
-  test "checkpoint operations" do
-    opts = opts()
-    key = {:agent, "1"}
+  test "checkpoint operations", %{storage_opts: storage_opts} do
+    key = {:agent, unique_id("checkpoint")}
     data = %{state: %{a: 1}}
 
-    assert :not_found = Storage.get_checkpoint(key, opts)
-    assert :ok = Storage.put_checkpoint(key, data, opts)
-    assert {:ok, ^data} = Storage.get_checkpoint(key, opts)
-    assert :ok = Storage.delete_checkpoint(key, opts)
-    assert :not_found = Storage.get_checkpoint(key, opts)
+    assert :not_found = Storage.get_checkpoint(key, storage_opts)
+    assert :ok = Storage.put_checkpoint(key, data, storage_opts)
+    assert {:ok, ^data} = Storage.get_checkpoint(key, storage_opts)
+    assert :ok = Storage.delete_checkpoint(key, storage_opts)
+    assert :not_found = Storage.get_checkpoint(key, storage_opts)
   end
 
-  test "expected_rev conflict" do
-    opts = opts()
-    thread_id = "thread-#{System.unique_integer([:positive])}"
+  test "expected_rev conflict", %{storage_opts: storage_opts} do
+    thread_id = unique_id("conflict-thread")
 
     assert {:ok, first} =
-             Storage.append_thread(thread_id, [%{kind: :note, payload: %{n: 1}}], Keyword.put(opts, :expected_rev, 0))
+             Storage.append_thread(
+               thread_id,
+               [%{kind: :note, payload: %{n: 1}}],
+               Keyword.put(storage_opts, :expected_rev, 0)
+             )
 
     assert first.rev == 1
 
     assert {:error, :conflict} =
-             Storage.append_thread(thread_id, [%{kind: :note, payload: %{n: 2}}], Keyword.put(opts, :expected_rev, 0))
+             Storage.append_thread(
+               thread_id,
+               [%{kind: :note, payload: %{n: 2}}],
+               Keyword.put(storage_opts, :expected_rev, 0)
+             )
   end
 
-  test "load_thread reconstructs entries written under a shared prefix" do
-    opts = opts()
-    thread_id = "thread-#{System.unique_integer([:positive])}"
+  test "load_thread reconstructs entries written under a shared prefix", %{storage_opts: storage_opts} do
+    thread_id = unique_id("shared-prefix-thread")
 
     assert {:ok, appended} =
              Storage.append_thread(
@@ -102,19 +42,18 @@ defmodule Jido.Bedrock.StorageTest do
                  %{kind: :note, payload: %{n: 1}},
                  %{kind: :note, payload: %{n: 2}}
                ],
-               opts
+               storage_opts
              )
 
     assert appended.rev == 2
 
-    assert {:ok, loaded} = Storage.load_thread(thread_id, opts)
+    assert {:ok, loaded} = Storage.load_thread(thread_id, storage_opts)
     assert loaded.rev == 2
     assert Enum.map(loaded.entries, & &1.payload.n) == [1, 2]
   end
 
-  test "delete_thread clears meta and entry keys" do
-    opts = opts()
-    thread_id = "thread-#{System.unique_integer([:positive])}"
+  test "delete_thread clears meta and entry keys", %{storage_opts: storage_opts} do
+    thread_id = unique_id("delete-thread")
 
     assert {:ok, _thread} =
              Storage.append_thread(
@@ -123,10 +62,10 @@ defmodule Jido.Bedrock.StorageTest do
                  %{kind: :note, payload: %{n: 1}},
                  %{kind: :note, payload: %{n: 2}}
                ],
-               opts
+               storage_opts
              )
 
-    assert :ok = Storage.delete_thread(thread_id, opts)
-    assert :not_found = Storage.load_thread(thread_id, opts)
+    assert :ok = Storage.delete_thread(thread_id, storage_opts)
+    assert :not_found = Storage.load_thread(thread_id, storage_opts)
   end
 end

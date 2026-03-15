@@ -67,7 +67,7 @@ defmodule JidoBedrock.MixProject do
     [
       # Runtime
       {:jido, "~> 2.1"},
-      {:bedrock, "~> 0.5"},
+      bedrock_dep(),
       {:splode, "~> 0.2"},
 
       # Dev/Test quality
@@ -81,10 +81,20 @@ defmodule JidoBedrock.MixProject do
     ]
   end
 
+  defp bedrock_dep do
+    local_path = Path.expand("../bedrock", __DIR__)
+
+    if Mix.env() in [:dev, :test] and File.exists?(Path.join(local_path, "mix.exs")) do
+      {:bedrock, path: local_path}
+    else
+      {:bedrock, "~> 0.5"}
+    end
+  end
+
   defp aliases do
     [
       setup: ["deps.get", "git_hooks.install"],
-      test: "test --exclude flaky",
+      test: "test --exclude flaky --exclude real_bedrock_tdd",
       q: ["quality"],
       quality: [
         "format --check-formatted",

@@ -236,12 +236,17 @@ defmodule Jido.Bedrock.Storage do
   end
 
   defp transact(repo, fun) when is_function(fun, 0) do
-    case repo.transact(fun) do
-      {:error, reason} -> {:error, reason}
-      result -> {:ok, result}
+    try do
+      case repo.transact(fun) do
+        {:error, reason} -> {:error, reason}
+        result -> {:ok, result}
+      end
+    rescue
+      error -> {:error, error}
+    catch
+      {module, :rollback, reason} when is_atom(module) -> {:error, reason}
+      {:rollback_unavailable, reason} -> {:error, reason}
     end
-  rescue
-    error -> {:error, error}
   end
 
   defp rollback(repo, reason) do

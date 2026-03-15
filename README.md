@@ -2,6 +2,20 @@
 
 `jido_bedrock` provides Bedrock-backed persistence adapters for Jido runtimes.
 
+## Alpha Status
+
+`jido_bedrock` is still alpha-quality and is being published to preserve active
+work, not as a production-ready package.
+
+- Do not rely on this code for production systems yet.
+- The persistence and recovery stack is still being actively stabilized.
+- Upstream Bedrock work is still in flight, and current full integration
+  verification depends on these open Bedrock PRs:
+  - [bedrock-kv/bedrock#72](https://github.com/bedrock-kv/bedrock/pull/72)
+  - [bedrock-kv/bedrock#73](https://github.com/bedrock-kv/bedrock/pull/73)
+  - [bedrock-kv/bedrock#74](https://github.com/bedrock-kv/bedrock/pull/74)
+- Until those Bedrock changes land, expect rough edges and breaking changes.
+
 ## Features
 
 - `Jido.Bedrock.Storage` implementing `Jido.Storage`
