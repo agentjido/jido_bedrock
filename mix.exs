@@ -66,8 +66,8 @@ defmodule JidoBedrock.MixProject do
   defp deps do
     [
       # Runtime
-      {:jido, "~> 2.0.0-rc.5"},
-      {:bedrock, "~> 0.4"},
+      {:jido, "~> 2.1"},
+      {:bedrock, "~> 0.5"},
       {:splode, "~> 0.2"},
 
       # Dev/Test quality
