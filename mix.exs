@@ -82,10 +82,32 @@ defmodule JidoBedrock.MixProject do
   end
 
   defp bedrock_dep do
+    env_path =
+      System.get_env("BEDROCK_PATH")
+      |> case do
+        path when is_binary(path) and path != "" -> Path.expand(path)
+        _ -> nil
+      end
+
     local_path = Path.expand("../bedrock", __DIR__)
 
-    if Mix.env() in [:dev, :test] and File.exists?(Path.join(local_path, "mix.exs")) do
-      {:bedrock, path: local_path}
+    resolved_path =
+      cond do
+        Mix.env() not in [:dev, :test] ->
+          nil
+
+        is_binary(env_path) and File.exists?(Path.join(env_path, "mix.exs")) ->
+          env_path
+
+        File.exists?(Path.join(local_path, "mix.exs")) ->
+          local_path
+
+        true ->
+          nil
+      end
+
+    if resolved_path do
+      {:bedrock, path: resolved_path}
     else
       {:bedrock, "~> 0.5"}
     end

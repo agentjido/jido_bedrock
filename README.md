@@ -9,12 +9,14 @@ work, not as a production-ready package.
 
 - Do not rely on this code for production systems yet.
 - The persistence and recovery stack is still being actively stabilized.
-- Upstream Bedrock work is still in flight, and current full integration
-  verification depends on these open Bedrock PRs:
-  - [bedrock-kv/bedrock#72](https://github.com/bedrock-kv/bedrock/pull/72)
-  - [bedrock-kv/bedrock#73](https://github.com/bedrock-kv/bedrock/pull/73)
-  - [bedrock-kv/bedrock#74](https://github.com/bedrock-kv/bedrock/pull/74)
-- Until those Bedrock changes land, expect rough edges and breaking changes.
+- The upstream Bedrock fixes this project depends on have landed on `main`, but
+  they are not yet available in a newer Hex release beyond `0.5.0`.
+- For local development and integration verification, point `BEDROCK_PATH` at a
+  Bedrock checkout on upstream `main`. In `:dev` and `:test`, `jido_bedrock`
+  resolves Bedrock in this order: `BEDROCK_PATH`, then a sibling `../bedrock`
+  checkout if present, then Hex `0.5.0`.
+- Expect rough edges and breaking changes while the adapter and Bedrock runtime
+  keep maturing together.
 
 ## Features
 
@@ -70,6 +72,12 @@ end
 mix setup
 mix quality
 mix test
+```
+
+To verify against a local Bedrock checkout on upstream `main`:
+
+```bash
+BEDROCK_PATH=/path/to/bedrock mix test
 ```
 
 ## License

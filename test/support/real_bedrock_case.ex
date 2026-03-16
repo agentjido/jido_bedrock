@@ -145,6 +145,7 @@ defmodule Jido.Bedrock.RealBedrockCase do
 
   defp ensure_local_node_started! do
     if Node.self() == :nonode@nohost do
+      ensure_epmd_started!()
       node_name = :"jido_bedrock_real_#{System.unique_integer([:positive])}"
 
       case :net_kernel.start([node_name, :shortnames]) do
@@ -160,6 +161,19 @@ defmodule Jido.Bedrock.RealBedrockCase do
       end
     else
       :ok
+    end
+  end
+
+  defp ensure_epmd_started! do
+    case :os.find_executable(~c"epmd") do
+      false ->
+        flunk("failed to find epmd in PATH")
+
+      epmd_path ->
+        case System.cmd(List.to_string(epmd_path), ["-daemon"], stderr_to_stdout: true) do
+          {_output, 0} -> :ok
+          {output, code} -> flunk("failed to start epmd (#{code}): #{output}")
+        end
     end
   end
 
