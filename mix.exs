@@ -28,7 +28,11 @@ defmodule JidoBedrock.MixProject do
         tool: ExCoveralls,
         summary: [threshold: 90],
         export: "cov",
-        ignore_modules: [~r/^JidoBedrockTest\./]
+        ignore_modules: [
+          ~r/^JidoBedrockTest$/,
+          ~r/^Jido\.Bedrock\.Case(\.|$)/,
+          ~r/^Jido\.Bedrock\.RealBedrockCase(\.|$)/
+        ]
       ],
 
       # Dialyzer
