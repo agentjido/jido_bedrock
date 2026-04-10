@@ -55,6 +55,98 @@ defmodule Jido.Bedrock.Case do
     def delete_thread(thread_id, opts), do: Storage.delete_thread(thread_id, opts)
   end
 
+  defmodule FakeRepo do
+    @moduledoc false
+    use Agent
+
+    @tx_key {__MODULE__, :tx_state}
+
+    def start_link(_opts) do
+      Agent.start_link(fn -> %{} end, name: __MODULE__)
+    end
+
+    def reset do
+      Agent.update(__MODULE__, fn _ -> %{} end)
+    end
+
+    def transact(fun, _opts \\ []) do
+      case Process.get(@tx_key) do
+        nil ->
+          initial = Agent.get(__MODULE__, & &1)
+          Process.put(@tx_key, initial)
+
+          try do
+            result = run_fun(fun)
+            tx_state = Process.get(@tx_key)
+            Agent.update(__MODULE__, fn _ -> tx_state end)
+            result
+          catch
+            {__MODULE__, :rollback, reason} -> {:error, reason}
+          after
+            Process.delete(@tx_key)
+          end
+
+        _tx_state ->
+          try do
+            run_fun(fun)
+          catch
+            {__MODULE__, :rollback, reason} -> {:error, reason}
+          end
+      end
+    end
+
+    def rollback(reason), do: throw({__MODULE__, :rollback, reason})
+
+    def get(key), do: current_state() |> Map.get(key)
+
+    def put(key, value) do
+      update_state(&Map.put(&1, key, value))
+      :ok
+    end
+
+    def clear(key) do
+      update_state(&Map.delete(&1, key))
+      :ok
+    end
+
+    def get_range({start_key, end_key}) do
+      current_state()
+      |> Enum.filter(fn {key, _value} -> key >= start_key and key < end_key end)
+      |> Enum.sort_by(&elem(&1, 0))
+    end
+
+    def clear_range({start_key, end_key}) do
+      update_state(fn state ->
+        state
+        |> Enum.reject(fn {key, _value} -> key >= start_key and key < end_key end)
+        |> Map.new()
+      end)
+
+      :ok
+    end
+
+    defp run_fun(fun) do
+      case Function.info(fun, :arity) do
+        {:arity, 1} -> fun.(__MODULE__)
+        {:arity, 0} -> fun.()
+      end
+    end
+
+    defp current_state do
+      Process.get(@tx_key) || Agent.get(__MODULE__, & &1)
+    end
+
+    defp update_state(fun) do
+      case Process.get(@tx_key) do
+        nil ->
+          Agent.update(__MODULE__, fun)
+
+        tx_state ->
+          Process.put(@tx_key, fun.(tx_state))
+      end
+    end
+  end
+
   using do
     quote do
       @moduletag :tmp_dir
@@ -72,12 +164,18 @@ defmodule Jido.Bedrock.Case do
 
   setup_all do
     start_supervised!(CheckpointFailureAgent)
+    start_supervised!(FakeRepo)
     :ok
   end
 
-  setup context do
+  setup _context do
     CheckpointFailureAgent.reset()
-    Jido.Bedrock.RealBedrockCase.setup_real_bedrock(context)
+    FakeRepo.reset()
+
+    storage_prefix = unique_prefix()
+    storage_opts = [repo: FakeRepo, prefix: storage_prefix]
+
+    {:ok, storage_prefix: storage_prefix, storage_opts: storage_opts, storage: {Jido.Bedrock.Storage, storage_opts}}
   end
 
   def unique_id(prefix) do
