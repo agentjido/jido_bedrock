@@ -37,7 +37,7 @@ defmodule JidoBedrock.MixProject do
 
       # Dialyzer
       dialyzer: [
-        plt_add_apps: [:mix],
+        plt_add_apps: [:mix, :jido_memory],
         plt_local_path: "priv/plts/project.plt",
         plt_core_path: "priv/plts/core.plt"
       ]

@@ -35,7 +35,8 @@ jobs:
       - name: Checkout Bedrock main
         uses: actions/checkout@v5
         with:
-          repository: agentjido/bedrock
+          repository: bedrock-kv/bedrock
+          ref: main
           path: bedrock
 
       - name: Setup Elixir
@@ -91,7 +92,8 @@ jobs:
       - name: Checkout Bedrock main
         uses: actions/checkout@v5
         with:
-          repository: agentjido/bedrock
+          repository: bedrock-kv/bedrock
+          ref: main
           path: bedrock
 
       - name: Install dependencies
