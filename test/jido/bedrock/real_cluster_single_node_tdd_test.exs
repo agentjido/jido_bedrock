@@ -12,8 +12,11 @@ defmodule Jido.Bedrock.RealClusterSingleNodeTddTest do
   @moduletag :single_node
   @moduletag timeout: 15_000
 
+  alias Jido.Agent.InstanceManager
+  alias Jido.AgentServer
   alias Jido.Bedrock.Storage
   alias Jido.Persist
+  alias Jido.Signal
   alias Jido.Thread
   alias Jido.Thread.Agent, as: ThreadAgent
 
@@ -28,6 +31,32 @@ defmodule Jido.Bedrock.RealClusterSingleNodeTddTest do
 
     @impl true
     def signal_routes(_ctx), do: []
+  end
+
+  defmodule AdvanceProcessResumeAction do
+    use Jido.Action, name: "real_process_resume_advance", schema: []
+
+    @impl true
+    def run(params, context) do
+      amount = Map.get(params, :amount, 1)
+      note = Map.get(params, :note, "advanced")
+      counter = Map.get(context.state, :counter, 0) + amount
+
+      {:ok, %{counter: counter, last_note: note}}
+    end
+  end
+
+  defmodule ProcessResumeAgent do
+    use Jido.Agent,
+      name: "jido_bedrock_real_process_resume_agent",
+      strategy: {Jido.Agent.Strategy.Direct, thread?: true},
+      schema: [
+        counter: [type: :integer, default: 0],
+        last_note: [type: :any, default: nil]
+      ]
+
+    @impl true
+    def signal_routes(_ctx), do: [{"workflow.advance", AdvanceProcessResumeAction}]
   end
 
   test "checkpoint and thread survive a single-node restart", %{storage: storage} do
@@ -50,6 +79,96 @@ defmodule Jido.Bedrock.RealClusterSingleNodeTddTest do
     assert thawed.state.__thread__.id == thread_id
     assert thawed.state.__thread__.rev == 2
     assert Thread.entry_count(thawed.state.__thread__) == 2
+  end
+
+  test "agent process resumes from real Bedrock after full shutdown", %{
+    storage: storage,
+    storage_opts: storage_opts
+  } do
+    manager = :"jido_bedrock_real_resume_manager_#{System.unique_integer([:positive])}"
+    jido_name = :"jido_bedrock_real_resume_#{System.unique_integer([:positive])}"
+    agent_key = unique_id("process-agent")
+
+    start_supervised!({Jido, name: jido_name})
+
+    start_supervised!(
+      InstanceManager.child_spec(
+        name: manager,
+        agent: ProcessResumeAgent,
+        idle_timeout: :infinity,
+        storage: storage,
+        agent_opts: [jido: jido_name]
+      )
+    )
+
+    on_exit(fn -> :persistent_term.erase({InstanceManager, manager}) end)
+
+    assert {:ok, pid1} =
+             timed(fn ->
+               InstanceManager.get(manager, agent_key, initial_state: %{counter: 3, last_note: "boot"})
+             end)
+
+    assert {:ok, updated_agent} =
+             timed(fn ->
+               AgentServer.call(
+                 pid1,
+                 Signal.new!(
+                   "workflow.advance",
+                   %{amount: 2, note: "persisted before shutdown"},
+                   source: "/jido_bedrock/real-test"
+                 )
+               )
+             end)
+
+    assert updated_agent.state.counter == 5
+    assert updated_agent.state.last_note == "persisted before shutdown"
+    assert %Thread{id: thread_id, rev: 2} = ThreadAgent.get(updated_agent)
+
+    pid1_ref = Process.monitor(pid1)
+    assert :ok = timed(fn -> InstanceManager.stop(manager, agent_key) end)
+    assert_receive {:DOWN, ^pid1_ref, :process, ^pid1, _reason}, 5_000
+    refute Process.alive?(pid1)
+
+    checkpoint_key = {ProcessResumeAgent, {manager, agent_key}}
+    assert {:ok, persisted_checkpoint} = timed(fn -> Storage.get_checkpoint(checkpoint_key, storage_opts) end)
+    assert persisted_checkpoint.state.counter == 5
+    assert persisted_checkpoint.thread == %{id: thread_id, rev: 2}
+
+    assert {:ok, persisted_thread} = timed(fn -> Storage.load_thread(thread_id, storage_opts) end)
+    assert persisted_thread.rev == 2
+    assert persisted_thread.entries |> Enum.map(& &1.kind) == [:instruction_start, :instruction_end]
+
+    restart_cluster!()
+
+    assert {:ok, pid2} = timed(fn -> InstanceManager.get(manager, agent_key) end)
+    refute pid1 == pid2
+    assert Process.alive?(pid2)
+
+    assert {:ok, resumed_state} = timed(fn -> AgentServer.state(pid2) end)
+    assert resumed_state.restored_from_storage == true
+    assert resumed_state.agent.state.counter == 5
+    assert resumed_state.agent.state.last_note == "persisted before shutdown"
+    assert %Thread{id: ^thread_id, rev: 2} = ThreadAgent.get(resumed_state.agent)
+
+    assert {:ok, resumed_agent} =
+             timed(fn ->
+               AgentServer.call(
+                 pid2,
+                 Signal.new!(
+                   "workflow.advance",
+                   %{amount: 4, note: "resumed after shutdown"},
+                   source: "/jido_bedrock/real-test"
+                 )
+               )
+             end)
+
+    assert resumed_agent.state.counter == 9
+    assert resumed_agent.state.last_note == "resumed after shutdown"
+    assert %Thread{id: ^thread_id, rev: 4} = ThreadAgent.get(resumed_agent)
+
+    assert :ok = timed(fn -> InstanceManager.stop(manager, agent_key) end)
+    assert {:ok, final_thread} = timed(fn -> Storage.load_thread(thread_id, storage_opts) end)
+    assert final_thread.rev == 4
   end
 
   test "appends after restart stay ordered and are not duplicated across a second restart", %{
