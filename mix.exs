@@ -1,7 +1,7 @@
 defmodule JidoBedrock.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.2.0-alpha.0"
   @source_url "https://github.com/agentjido/jido_bedrock"
   @description "Bedrock-backed persistence adapters for Jido runtimes."
 
@@ -46,7 +46,7 @@ defmodule JidoBedrock.MixProject do
 
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger, :telemetry]
     ]
   end
 
@@ -70,18 +70,20 @@ defmodule JidoBedrock.MixProject do
   defp deps do
     [
       # Runtime
-      {:jido, "~> 2.1"},
+      {:jido, "~> 2.2.0"},
       bedrock_dep(),
-      {:splode, "~> 0.2"},
+      {:splode, "~> 0.3.0"},
+      {:telemetry, "~> 1.3"},
 
       # Dev/Test quality
+      jido_memory_dep(),
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:excoveralls, "~> 0.18", only: [:dev, :test]},
-      {:doctor, "~> 0.21", only: :dev, runtime: false},
+      {:doctor, "~> 0.22.0", only: :dev, runtime: false},
       {:git_hooks, "~> 0.8", only: [:dev, :test], runtime: false},
-      {:git_ops, "~> 2.9", only: :dev, runtime: false}
+      {:git_ops, "~> 2.10", only: :dev, runtime: false}
     ]
   end
 
@@ -113,14 +115,46 @@ defmodule JidoBedrock.MixProject do
     if resolved_path do
       {:bedrock, path: resolved_path}
     else
-      {:bedrock, "~> 0.5"}
+      {:bedrock, "~> 0.5.0"}
+    end
+  end
+
+  defp jido_memory_dep do
+    env_path =
+      System.get_env("JIDO_MEMORY_PATH")
+      |> case do
+        path when is_binary(path) and path != "" -> Path.expand(path)
+        _ -> nil
+      end
+
+    local_path = Path.expand("../jido_memory", __DIR__)
+
+    resolved_path =
+      cond do
+        Mix.env() not in [:dev, :test] ->
+          nil
+
+        is_binary(env_path) and File.exists?(Path.join(env_path, "mix.exs")) ->
+          env_path
+
+        File.exists?(Path.join(local_path, "mix.exs")) ->
+          local_path
+
+        true ->
+          nil
+      end
+
+    if resolved_path do
+      {:jido_memory, path: resolved_path, only: [:dev, :test], runtime: false}
+    else
+      {:jido_memory, github: "agentjido/jido_memory", branch: "main", only: [:dev, :test], runtime: false}
     end
   end
 
   defp aliases do
     [
       setup: ["deps.get", "git_hooks.install"],
-      test: "test --exclude flaky --exclude real_bedrock_tdd",
+      test: "test --exclude flaky",
       q: ["quality"],
       quality: [
         "format --check-formatted",

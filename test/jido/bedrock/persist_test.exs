@@ -2,6 +2,7 @@ defmodule Jido.Bedrock.PersistTest do
   use Jido.Bedrock.Case, async: false
 
   alias Jido.Persist
+  alias Jido.Bedrock.Error
   alias Jido.Thread
   alias Jido.Thread.Agent, as: ThreadAgent
 
@@ -189,5 +190,12 @@ defmodule Jido.Bedrock.PersistTest do
 
     assert :ok = Storage.put_checkpoint({WorkflowAgent, agent_id}, checkpoint, storage_opts)
     assert {:error, :thread_mismatch} = Persist.thaw(storage, WorkflowAgent, agent_id)
+  end
+
+  test "storage failures propagate Splode errors through thaw", %{storage_opts: storage_opts} do
+    bad_storage = {Storage, Keyword.put(storage_opts, :prefix, "invalid-prefix")}
+
+    assert {:error, %Error.ConfigError{} = error} = Persist.thaw(bad_storage, WorkflowAgent, unique_id("bad-storage"))
+    assert error.key == :prefix
   end
 end

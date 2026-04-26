@@ -72,6 +72,28 @@ defmodule Jido.Bedrock.Case do
     def transact(fun, _opts \\ []) do
       case Process.get(@tx_key) do
         nil ->
+          Agent.get_and_update(__MODULE__, fn initial ->
+            Process.put(@tx_key, initial)
+
+            try do
+              result = run_fun(fun)
+              tx_state = Process.get(@tx_key)
+              {result, tx_state}
+            catch
+              {__MODULE__, :rollback, reason} -> {{:error, reason}, initial}
+            after
+              Process.delete(@tx_key)
+            end
+          end)
+
+        _tx_state ->
+          do_transact(fun)
+      end
+    end
+
+    defp do_transact(fun) do
+      case Process.get(@tx_key) do
+        nil ->
           initial = Agent.get(__MODULE__, & &1)
           Process.put(@tx_key, initial)
 
@@ -152,6 +174,7 @@ defmodule Jido.Bedrock.Case do
       @moduletag :tmp_dir
 
       alias Jido.Bedrock.Case.CheckpointFailureAgent
+      alias Jido.Bedrock.Case.FakeRepo
       alias Jido.Bedrock.Case.FlakyStorage
       alias Jido.Bedrock.RealBedrockCase.TestCluster
       alias Jido.Bedrock.RealBedrockCase.TestRepo

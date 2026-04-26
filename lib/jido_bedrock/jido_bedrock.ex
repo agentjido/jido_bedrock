@@ -8,4 +8,8 @@ defmodule JidoBedrock do
   @doc "Returns the default storage adapter module for Jido persistence."
   @spec storage_adapter() :: module()
   defdelegate storage_adapter(), to: Jido.Bedrock
+
+  @doc "Returns the Bedrock-backed store adapter module for jido_memory."
+  @spec memory_store_adapter() :: module()
+  defdelegate memory_store_adapter(), to: Jido.Bedrock
 end

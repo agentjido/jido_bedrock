@@ -2,8 +2,8 @@ defmodule Jido.Bedrock.RealClusterSingleNodeTddTest do
   @moduledoc """
   Single-node real Bedrock lifecycle specs.
 
-  These are intentionally excluded from the default `mix test` alias and are
-  meant to drive the next round of Bedrock/Jido.Bedrock integration work.
+  These run in the default test suite to verify the adapter against a real
+  single-node Bedrock cluster.
   """
 
   use Jido.Bedrock.RealBedrockCase, async: false

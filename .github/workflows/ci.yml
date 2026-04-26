@@ -20,11 +20,49 @@ jobs:
 
   test:
     name: Test
-    uses: agentjido/github-actions/.github/workflows/elixir-test.yml@v3
-    with:
-      otp_versions: '["27", "28"]'
-      elixir_versions: '["1.18", "1.19"]'
-      test_command: mix test
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        otp: ["27", "28"]
+        elixir: ["1.18", "1.19"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Checkout Bedrock main
+        uses: actions/checkout@v5
+        with:
+          repository: agentjido/bedrock
+          path: bedrock
+
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp }}
+          elixir-version: ${{ matrix.elixir }}
+
+      - name: Cache deps and build
+        uses: actions/cache@v5
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-test-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-test-${{ matrix.otp }}-${{ matrix.elixir }}-
+
+      - name: Install dependencies
+        run: mix deps.get
+        env:
+          BEDROCK_PATH: ${{ github.workspace }}/bedrock
+
+      - name: Run tests
+        run: mix test
+        env:
+          BEDROCK_PATH: ${{ github.workspace }}/bedrock
 
   coverage:
     name: Coverage
@@ -50,8 +88,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-mix-coveralls-
 
+      - name: Checkout Bedrock main
+        uses: actions/checkout@v5
+        with:
+          repository: agentjido/bedrock
+          path: bedrock
+
       - name: Install dependencies
         run: mix deps.get
+        env:
+          BEDROCK_PATH: ${{ github.workspace }}/bedrock
 
       - name: Run coverage and enforce threshold
         run: |
@@ -73,3 +119,5 @@ jobs:
           fi
 
           echo "Coverage ${total}% meets threshold ${threshold}%."
+        env:
+          BEDROCK_PATH: ${{ github.workspace }}/bedrock
