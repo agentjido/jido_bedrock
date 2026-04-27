@@ -14,7 +14,7 @@ work, not as a production-ready package.
 - For local development and integration verification, point `BEDROCK_PATH` at a
   Bedrock checkout on upstream `main`. In `:dev` and `:test`, `jido_bedrock`
   resolves Bedrock in this order: `BEDROCK_PATH`, then a sibling `../bedrock`
-  checkout if present, then Hex `0.5.0`.
+  checkout if present, then `bedrock-kv/bedrock` on GitHub `main`.
 - Version `0.2.0-alpha.0` hard-breaks the `0.1.x` storage format. Existing
   raw-term data written by `0.1.x` is not readable by `0.2`; clear/reseed that
   data or run a one-off migration before upgrading.

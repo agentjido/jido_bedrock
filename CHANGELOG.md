@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
 - Hard-break the `0.1.x` storage format with versioned envelopes for
   checkpoints, thread metadata, and thread entries.
 - Tighten runtime dependencies to the Jido 2.2 and Splode 0.3 lines.
+- Resolve the Bedrock fallback dependency from `bedrock-kv/bedrock` on GitHub
+  `main` because the latest Hex release, `0.5.0`, is missing persisted
+  single-node restart recovery fixes.
 - Run real single-node Bedrock integration tests in the default test suite.
 
 ### Added

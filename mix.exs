@@ -115,7 +115,7 @@ defmodule JidoBedrock.MixProject do
     if resolved_path do
       {:bedrock, path: resolved_path}
     else
-      {:bedrock, "~> 0.5.0"}
+      {:bedrock, github: "bedrock-kv/bedrock", branch: "main"}
     end
   end
 
