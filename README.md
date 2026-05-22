@@ -1,5 +1,13 @@
 # Jido Bedrock
 
+[![Hex.pm](https://img.shields.io/hexpm/v/jido_bedrock.svg)](https://hex.pm/packages/jido_bedrock)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/jido_bedrock/)
+[![CI](https://github.com/agentjido/jido_bedrock/actions/workflows/ci.yml/badge.svg)](https://github.com/agentjido/jido_bedrock/actions/workflows/ci.yml)
+[![License](https://img.shields.io/hexpm/l/jido_bedrock.svg)](https://github.com/agentjido/jido_bedrock/blob/main/LICENSE)
+[![Website](https://img.shields.io/badge/website-jido.run-0f172a.svg)](https://jido.run)
+[![Ecosystem](https://img.shields.io/badge/ecosystem-jido.run-0ea5e9.svg)](https://jido.run/ecosystem)
+[![Discord](https://img.shields.io/badge/discord-join-5865F2.svg?logo=discord&logoColor=white)](https://jido.run/discord)
+
 `jido_bedrock` provides Bedrock-backed persistence adapters for Jido runtimes.
 
 ## Alpha Status
