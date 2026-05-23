@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- Align with the Jido 2.3 line and the published `jido_memory` 1.0 Hex package.
+
 ## [0.2.0-alpha.0] - 2026-04-26
 
 ### Changed

@@ -91,15 +91,14 @@ storage: {Jido.Bedrock.Storage, repo: MyApp.BedrockRepo, prefix: "my_app/jido/"}
 
 ## Jido.Memory Store
 
-`jido_bedrock` also exposes `Jido.Bedrock.Memory.Store` for the
-`agentjido/jido_memory` package. Because `jido_memory` is not currently a Hex
-package, add it separately when you want Bedrock-backed agent memory:
+`jido_bedrock` also exposes `Jido.Bedrock.Memory.Store` for `jido_memory`. Add
+it separately when you want Bedrock-backed agent memory:
 
 ```elixir
 def deps do
   [
     {:jido_bedrock, "~> 0.2.0-alpha"},
-    {:jido_memory, github: "agentjido/jido_memory", branch: "main"}
+    {:jido_memory, "~> 1.0"}
   ]
 end
 ```

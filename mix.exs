@@ -70,13 +70,13 @@ defmodule JidoBedrock.MixProject do
   defp deps do
     [
       # Runtime
-      {:jido, "~> 2.2.0"},
+      {:jido, "~> 2.3"},
       bedrock_dep(),
       {:splode, "~> 0.3.0"},
       {:telemetry, "~> 1.3"},
 
       # Dev/Test quality
-      jido_memory_dep(),
+      {:jido_memory, "~> 1.0", optional: true},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
@@ -119,38 +119,6 @@ defmodule JidoBedrock.MixProject do
     end
   end
 
-  defp jido_memory_dep do
-    env_path =
-      System.get_env("JIDO_MEMORY_PATH")
-      |> case do
-        path when is_binary(path) and path != "" -> Path.expand(path)
-        _ -> nil
-      end
-
-    local_path = Path.expand("../jido_memory", __DIR__)
-
-    resolved_path =
-      cond do
-        Mix.env() not in [:dev, :test] ->
-          nil
-
-        is_binary(env_path) and File.exists?(Path.join(env_path, "mix.exs")) ->
-          env_path
-
-        File.exists?(Path.join(local_path, "mix.exs")) ->
-          local_path
-
-        true ->
-          nil
-      end
-
-    if resolved_path do
-      {:jido_memory, path: resolved_path, only: [:dev, :test], runtime: false}
-    else
-      {:jido_memory, github: "agentjido/jido_memory", branch: "main", only: [:dev, :test], runtime: false}
-    end
-  end
-
   defp aliases do
     [
       setup: ["deps.get", "git_hooks.install"],
@@ -183,10 +151,10 @@ defmodule JidoBedrock.MixProject do
       licenses: ["Apache-2.0"],
       links: %{
         "Changelog" => "https://hexdocs.pm/jido_bedrock/changelog.html",
-        "Discord" => "https://agentjido.xyz/discord",
+        "Discord" => "https://jido.run/discord",
         "Documentation" => "https://hexdocs.pm/jido_bedrock",
         "GitHub" => @source_url,
-        "Website" => "https://agentjido.xyz"
+        "Website" => "https://jido.run"
       }
     ]
   end
