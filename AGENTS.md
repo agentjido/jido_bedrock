@@ -28,3 +28,7 @@ Use Conventional Commits, for example:
 - `feat(storage): add bedrock-backed append_thread implementation`
 - `fix(storage): normalize rollback conflict handling`
 - `test(storage): add expected_rev conflict coverage`
+
+## Release Hygiene
+
+- Do not modify `CHANGELOG.md`; release notes are generated from Git history during release, so keep changes focused on proper Conventional Commits.
