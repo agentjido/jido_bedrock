@@ -255,7 +255,7 @@ defmodule Jido.Bedrock.Storage.Threads do
   end
 
   defp validate_entry_inputs(entries) do
-    if Enum.all?(entries, &(is_map(&1) or match?(%Entry{}, &1))) do
+    if Enum.all?(entries, &is_map/1) do
       :ok
     else
       {:error,
