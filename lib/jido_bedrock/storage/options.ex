@@ -47,15 +47,15 @@ defmodule Jido.Bedrock.Storage.Options do
 
   defp validate_repo(opts) do
     case Keyword.get(opts, :repo) do
+      nil ->
+        {:error, Error.config_error("Bedrock repo option is required", key: :repo, value: nil)}
+
       repo when is_atom(repo) ->
         if Code.ensure_loaded?(repo) do
           {:ok, repo}
         else
           {:error, Error.config_error("Bedrock repo module is not loaded", key: :repo, value: repo)}
         end
-
-      nil ->
-        {:error, Error.config_error("Bedrock repo option is required", key: :repo, value: nil)}
 
       other ->
         {:error,
