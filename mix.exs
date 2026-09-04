@@ -14,15 +14,6 @@ defmodule JidoBedrock.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
-      # Hackney 4.x is incompatible with the current HTTPoison/ExAws dependency chain.
-      hex: [
-        ignore_advisories: [
-          "CVE-2026-47075",
-          "CVE-2026-47076",
-          "CVE-2026-47071",
-          "CVE-2026-47069"
-        ]
-      ],
 
       # Documentation
       name: "Jido Bedrock",
@@ -81,11 +72,14 @@ defmodule JidoBedrock.MixProject do
       # Runtime
       {:jido, "~> 2.3"},
       bedrock_dep(),
+      {:bedrock_raft, "~> 0.9.7", override: true},
       {:splode, "~> 0.3.0"},
       {:telemetry, "~> 1.3"},
 
       # Dev/Test quality
       {:jido_memory, "~> 1.0", optional: true},
+      # Bedrock uses Hackney 4 while tzdata still declares the legacy 1.x line.
+      {:hackney, "~> 4.7", override: true},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
