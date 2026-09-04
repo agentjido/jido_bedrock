@@ -1,5 +1,9 @@
 import Config
 
+# Tzdata 1.1.4 uses the Hackney 1.x response API for live updates.
+# Dependency updates supply the timezone data while Hackney 4 fixes its CVEs.
+config :tzdata, :autoupdate, :disabled
+
 if config_env() == :dev do
   config :git_hooks,
     auto_install: true,
