@@ -72,7 +72,7 @@ defmodule JidoBedrock.MixProject do
       # Runtime
       {:jido, "~> 2.3"},
       bedrock_dep(),
-      {:bedrock_raft, "~> 0.9.7", override: true},
+      {:bedrock_raft, "~> 0.10.0", override: true},
       {:splode, "~> 0.3.0"},
       {:telemetry, "~> 1.3"},
 
