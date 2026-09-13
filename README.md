@@ -17,12 +17,13 @@ work, not as a production-ready package.
 
 - Do not rely on this code for production systems yet.
 - The persistence and recovery stack is still being actively stabilized.
-- The upstream Bedrock fixes this project depends on have landed on `main`, but
-  they are not yet available in a newer Hex release beyond `0.5.0`.
+- Bedrock is pinned to the `0.7.2` source commit
+  `392417c671a39a6f271925cc6894e1c10e91a4db`, which supports the
+  `bedrock_raft` `0.10` log protocol. CI tests this pinned dependency.
 - For local development and integration verification, point `BEDROCK_PATH` at a
-  Bedrock checkout on upstream `main`. In `:dev` and `:test`, `jido_bedrock`
+  Bedrock checkout that supports Raft `0.10`. In `:dev` and `:test`, `jido_bedrock`
   resolves Bedrock in this order: `BEDROCK_PATH`, then a sibling `../bedrock`
-  checkout if present, then `bedrock-kv/bedrock` on GitHub `main`.
+  checkout if present, then the pinned `bedrock-kv/bedrock` commit on GitHub.
 - Version `0.2.0-alpha.0` hard-breaks the `0.1.x` storage format. Existing
   raw-term data written by `0.1.x` is not readable by `0.2`; clear/reseed that
   data or run a one-off migration before upgrading.

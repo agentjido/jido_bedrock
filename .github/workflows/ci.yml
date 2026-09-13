@@ -33,13 +33,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Checkout Bedrock main
-        uses: actions/checkout@v5
-        with:
-          repository: bedrock-kv/bedrock
-          ref: main
-          path: bedrock
-
       - name: Setup Elixir
         uses: erlef/setup-beam@v1
         with:
@@ -57,14 +50,10 @@ jobs:
             ${{ runner.os }}-mix-test-${{ matrix.otp }}-${{ matrix.elixir }}-
 
       - name: Install dependencies
-        run: mix deps.get
-        env:
-          BEDROCK_PATH: ${{ github.workspace }}/bedrock
+        run: mix deps.get --check-locked
 
       - name: Run tests
         run: mix test
-        env:
-          BEDROCK_PATH: ${{ github.workspace }}/bedrock
 
   coverage:
     name: Coverage
@@ -90,17 +79,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-mix-coveralls-
 
-      - name: Checkout Bedrock main
-        uses: actions/checkout@v5
-        with:
-          repository: bedrock-kv/bedrock
-          ref: main
-          path: bedrock
-
       - name: Install dependencies
-        run: mix deps.get
-        env:
-          BEDROCK_PATH: ${{ github.workspace }}/bedrock
+        run: mix deps.get --check-locked
 
       - name: Run coverage and enforce threshold
         run: |
@@ -122,5 +102,3 @@ jobs:
           fi
 
           echo "Coverage ${total}% meets threshold ${threshold}%."
-        env:
-          BEDROCK_PATH: ${{ github.workspace }}/bedrock
