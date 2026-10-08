@@ -70,7 +70,8 @@ defmodule JidoBedrock.MixProject do
   defp deps do
     [
       # Runtime
-      {:jido, "~> 2.3"},
+      {:jido,
+       git: "https://github.com/agentjido/jido.git", ref: "0c8853bf451a40330b7192c9d2200a06f9c61261", override: true},
       bedrock_dep(),
       {:bedrock_raft, "~> 0.10.0"},
       {:splode, "~> 0.3.0"},
