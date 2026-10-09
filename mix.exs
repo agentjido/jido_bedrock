@@ -70,7 +70,7 @@ defmodule JidoBedrock.MixProject do
   defp deps do
     [
       # Runtime
-      {:jido, "~> 2.3"},
+      {:jido, "~> 2.4"},
       bedrock_dep(),
       {:bedrock_raft, "~> 0.10.0"},
       {:splode, "~> 0.3.0"},
@@ -119,7 +119,7 @@ defmodule JidoBedrock.MixProject do
       {:bedrock, path: resolved_path}
     else
       # Bedrock 0.7.2 implements the Raft 0.10 log protocol.
-      {:bedrock, github: "bedrock-kv/bedrock", ref: "392417c671a39a6f271925cc6894e1c10e91a4db"}
+      {:bedrock, "~> 0.7.2"}
     end
   end
 
